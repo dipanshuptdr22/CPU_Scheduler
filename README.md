@@ -121,7 +121,7 @@ g++ scheduling.cpp -o scheduling
 
 <p>
 Developed by <b>Dipanshu Patidar</b><br>
-GitHub: https://github.com/dispanshuptdr22
+GitHub: https://github.com/dipanshuptdr22
 </p>
 
 <hr>
