@@ -1,17 +1,17 @@
 <h1 align="center">CPU Scheduling Algorithms Simulator (C++)</h1>
 
 <p align="center">
-This project implements multiple CPU scheduling algorithms in C++ and compares their performance
-using metrics such as Waiting Time, Turnaround Time, and Response Time.
+A C++ program that simulates multiple CPU scheduling algorithms and compares their performance
+using metrics like Waiting Time, Turnaround Time, and Response Time.
 </p>
 
 <hr>
 
 <h2>Overview</h2>
 <p>
-This program simulates how an operating system schedules processes. 
-Users provide arrival time and burst time for each process, and the program calculates 
-performance metrics for different scheduling algorithms.
+This project demonstrates how different CPU scheduling algorithms work in an Operating System.
+The program takes process arrival time and burst time as input and calculates the performance
+metrics for each scheduling algorithm.
 </p>
 
 <hr>
@@ -31,25 +31,27 @@ performance metrics for different scheduling algorithms.
 <h2>Performance Metrics</h2>
 
 <ul>
-<li><b>Waiting Time (WT)</b> – Time a process waits in the ready queue.</li>
-<li><b>Turnaround Time (TAT)</b> – Total time from arrival to completion.</li>
-<li><b>Response Time (RT)</b> – Time from arrival until the process first gets CPU.</li>
+<li><b>Waiting Time (WT)</b> – Time a process waits in the ready queue</li>
+<li><b>Turnaround Time (TAT)</b> – Total time from arrival to completion</li>
+<li><b>Response Time (RT)</b> – Time from arrival until the process first receives CPU</li>
 </ul>
 
-<p>The program calculates the <b>average values</b> of these metrics for each algorithm.</p>
+<p>
+The program calculates the <b>average values</b> of these metrics for each algorithm.
+</p>
 
 <hr>
 
 <h2>Input Format</h2>
 
-<p>The user must enter:</p>
+<p>The user must provide:</p>
 
 <ol>
 <li>Number of processes</li>
 <li>Arrival time and burst time for each process</li>
 </ol>
 
-<p><b>Example Input:</b></p>
+<p><b>Example Input</b></p>
 
 <pre>
 Enter number of processes: 3
@@ -75,19 +77,19 @@ Enter arrival and burst time:
 
 <h2>How to Compile and Run</h2>
 
-<h3>Step 1: Compile the Program</h3>
+<h3>1. Compile the Program</h3>
 
 <pre>
 g++ scheduling.cpp -o scheduling
 </pre>
 
-<h3>Step 2: Run the Program</h3>
+<h3>2. Run the Program</h3>
 
 <pre>
 ./scheduling
 </pre>
 
-<h3>Step 3: Provide Input</h3>
+<h3>3. Provide Input</h3>
 
 <p>Enter the number of processes and their arrival and burst times.</p>
 
@@ -109,19 +111,8 @@ g++ scheduling.cpp -o scheduling
 
 <ul>
 <li>Vectors – storing processes</li>
-<li>Queues – Round Robin and MLFQ scheduling</li>
-<li>Sorting – scheduling decisions</li>
-</ul>
-
-<hr>
-
-<h2>Learning Objectives</h2>
-
-<ul>
-<li>Understanding CPU scheduling algorithms</li>
-<li>Operating system process management</li>
-<li>Performance comparison of scheduling strategies</li>
-<li>Implementation of scheduling techniques in C++</li>
+<li>Queues – used in Round Robin and MLFQ</li>
+<li>Sorting – used for scheduling decisions</li>
 </ul>
 
 <hr>
@@ -129,5 +120,12 @@ g++ scheduling.cpp -o scheduling
 <h2>Author</h2>
 
 <p>
-Developed as part of an Operating Systems project to understand and compare CPU scheduling algorithms.
+Developed by <b>Dipanshu Patidar</b><br>
+GitHub: https://github.com/dispanshuptdr22
+</p>
+
+<hr>
+
+<p align="center">
+⭐ If you found this project useful, consider giving it a star on GitHub!
 </p>
