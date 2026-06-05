@@ -18,8 +18,36 @@ struct Process {
     int response = -1;
 };
 
-bool compArrival(const Process &a, const Process &b) {
+bool compArrival(const Process& a, const Process& b){
+    if (a.arrival == b.arrival)
+        return a.pid < b.pid;
+
     return a.arrival < b.arrival;
+}
+
+void printStatistics(const vector<Process>& processes, const string& name){
+    double totalWaiting = 0;
+    double totalTurnaround = 0;
+    double totalResponse = 0;
+
+    for(const auto& p : processes){
+        totalWaiting += p.waiting;
+        totalTurnaround += p.turnaround;
+        totalResponse += p.response;
+    }
+
+    int n = processes.size();
+
+    cout << "\n[" << name << "]\n";
+    cout << "Average Waiting Time    : "
+         << fixed << setprecision(2)
+         << totalWaiting / n << '\n';
+
+    cout << "Average Turnaround Time : "
+         << totalTurnaround / n << '\n';
+
+    cout << "Average Response Time   : "
+         << totalResponse / n << '\n';
 }
 
 void FCFS(vector<Process> processes) {
@@ -34,90 +62,165 @@ void FCFS(vector<Process> processes) {
         p.waiting = p.turnaround - p.burst;
         p.response = p.start - p.arrival;
     }
-    cout << "\n[FCFS] Average Waiting Time: ";
-    double totalWaiting = 0, totalTurnaround = 0, totalResponse = 0;
-    for (auto p : processes) {
-        totalWaiting += p.waiting;
-        totalTurnaround += p.turnaround;
-        totalResponse += p.response;
-    }
-    cout << fixed << setprecision(2) << totalWaiting / processes.size();
-    cout << ", Turnaround Time: " << totalTurnaround / processes.size();
-    cout << ", Response Time: " << totalResponse / processes.size() << endl;
+    printStatistics(processes, "FCFS");
 }
 
 void SJF(vector<Process> processes) {
-    int currentTime = 0, completed = 0;
-    vector<bool> isDone(processes.size(), false);
-    while (completed < processes.size()) {
-        int idx = -1, minBurst = 1e9;
-        for (int i = 0; i < processes.size(); ++i) {
-            if (!isDone[i] && processes[i].arrival <= currentTime && processes[i].burst < minBurst) {
-                minBurst = processes[i].burst;
-                idx = i;
-            }
+
+    sort(processes.begin(), processes.end(), compArrival);
+
+    int n = processes.size();
+    int currentTime = 0;
+    int completed = 0;
+    int nextArrival = 0;
+
+    priority_queue<pair<int,int>, vector<pair<int,int>>, greater<pair<int,int>>> pq; // {burst, index}
+
+    while (completed < n) {
+
+        while (nextArrival < n && processes[nextArrival].arrival <= currentTime) {
+            pq.push({processes[nextArrival].burst, nextArrival});
+            nextArrival++;
         }
-        if (idx == -1) {
-            currentTime++;
+
+        if (pq.empty()) {
+           if(nextArrival < n)  currentTime = processes[nextArrival].arrival;
             continue;
         }
-        auto &p = processes[idx];
+
+        int idx = pq.top().second;
+        pq.pop();
+
+        Process &p = processes[idx];
+
         p.start = currentTime;
         currentTime += p.burst;
+
         p.completion = currentTime;
         p.turnaround = p.completion - p.arrival;
         p.waiting = p.turnaround - p.burst;
         p.response = p.start - p.arrival;
-        isDone[idx] = true;
+
         completed++;
     }
-    cout << "\n[SJF] Average Waiting Time: ";
-    double totalWaiting = 0, totalTurnaround = 0, totalResponse = 0;
-    for (auto p : processes) {
-        totalWaiting += p.waiting;
-        totalTurnaround += p.turnaround;
-        totalResponse += p.response;
-    }
-    cout << fixed << setprecision(2) << totalWaiting / processes.size();
-    cout << ", Turnaround Time: " << totalTurnaround / processes.size();
-    cout << ", Response Time: " << totalResponse / processes.size() << endl;
+
+   printStatistics(processes, "SJF");
 }
 
-void RoundRobin(vector<Process> processes, int quantum) {
-    queue<int> q;
-    vector<bool> inQueue(processes.size(), false);
-    int currentTime = 0, completed = 0;
 
-    for (auto &p : processes) p.remaining = p.burst;
+void SRTF(vector<Process> processes) {
 
-    while (completed < processes.size()) {
-        for (int i = 0; i < processes.size(); ++i) {
-            if (!inQueue[i] && processes[i].arrival <= currentTime && processes[i].remaining > 0) {
-                q.push(i);
-                inQueue[i] = true;
-            }
+    sort(processes.begin(), processes.end(), compArrival);
+
+    int n = processes.size();
+
+    for (auto &p : processes)
+        p.remaining = p.burst;
+
+    priority_queue<pair<int,int>, vector<pair<int,int>>, greater<pair<int,int>>> pq; // {remainingTime, index}
+
+    int currentTime = 0;
+    int completed = 0;
+    int nextArrival = 0;
+
+    while (completed < n) {
+
+        while (nextArrival < n && processes[nextArrival].arrival <= currentTime) {
+            pq.push({processes[nextArrival].remaining, nextArrival});
+            nextArrival++;
         }
-        if (q.empty()) {
-            currentTime++;
+
+        if (pq.empty()) {
+            currentTime = processes[nextArrival].arrival;
             continue;
         }
-        int i = q.front(); q.pop();
-        inQueue[i] = false;
 
-        auto &p = processes[i];
-        if (p.start == -1) p.start = currentTime;
+        int idx = pq.top().second;
+        pq.pop();
+
+        Process &p = processes[idx];
+
+        if (p.start == -1)
+            p.start = currentTime;
+
+        // Execute for 1 unit
+        p.remaining--;
+        currentTime++;
+
+        // Add processes that arrived during this unit
+        while (nextArrival < n && processes[nextArrival].arrival <= currentTime) {
+            pq.push({processes[nextArrival].remaining, nextArrival});
+            nextArrival++;
+        }
+
+        if (p.remaining == 0) {
+
+            completed++;
+
+            p.completion = currentTime;
+            p.turnaround = p.completion - p.arrival;
+            p.waiting = p.turnaround - p.burst;
+            p.response = p.start - p.arrival;
+
+        } else {
+
+            pq.push({p.remaining, idx});
+        }
+    }
+    printStatistics(processes, "SRTF");
+}
+
+
+void RoundRobin(vector<Process> processes, int quantum) {
+    sort(processes.begin(), processes.end(), compArrival);
+
+    int n = processes.size();
+
+    for (auto &p : processes)
+        p.remaining = p.burst;
+
+    queue<int> q;
+    int currentTime = 0;
+    int completed = 0;
+    int nextArrival = 0;
+
+    while (completed < n) {
+
+        // Add all processes that have arrived
+        while (nextArrival < n && processes[nextArrival].arrival <= currentTime) {
+            q.push(nextArrival);
+            nextArrival++;
+        }
+
+        // CPU idle
+        if (q.empty()) {
+            if(nextArrival < n)  currentTime = processes[nextArrival].arrival;
+            continue;
+        }
+
+        int idx = q.front();
+        q.pop();
+
+        Process &p = processes[idx];
+
+        if (p.start == -1)
+            p.start = currentTime;
 
         int timeUsed = min(quantum, p.remaining);
+
         currentTime += timeUsed;
         p.remaining -= timeUsed;
 
-        for (int j = 0; j < processes.size(); ++j) {
-            if (!inQueue[j] && processes[j].arrival <= currentTime && processes[j].remaining > 0)
-                q.push(j), inQueue[j] = true;
+        // Add processes that arrived during execution
+        while (nextArrival < n &&
+               processes[nextArrival].arrival <= currentTime) {
+            q.push(nextArrival);
+            nextArrival++;
         }
 
-        if (p.remaining > 0) q.push(i), inQueue[i] = true;
-        else {
+        if (p.remaining > 0) {
+            q.push(idx);
+        } else {
             p.completion = currentTime;
             p.turnaround = p.completion - p.arrival;
             p.waiting = p.turnaround - p.burst;
@@ -125,124 +228,82 @@ void RoundRobin(vector<Process> processes, int quantum) {
             completed++;
         }
     }
-    cout << "\n[Round Robin] Average Waiting Time: ";
-    double totalWaiting = 0, totalTurnaround = 0, totalResponse = 0;
-    for (auto p : processes) {
-        totalWaiting += p.waiting;
-        totalTurnaround += p.turnaround;
-        totalResponse += p.response;
-    }
-    cout << fixed << setprecision(2) << totalWaiting / processes.size();
-    cout << ", Turnaround Time: " << totalTurnaround / processes.size();
-    cout << ", Response Time: " << totalResponse / processes.size() << endl;
+    printStatistics(processes, "RoundRobin");
 }
 
-void SRTF(vector<Process> processes) {
-    int n = processes.size();
-    for (auto &p : processes) p.remaining = p.burst;
-    int currentTime = 0, completed = 0, minRem = 1e9, idx = -1;
-    bool found = false;
+void MLFQ(vector<Process> processes){
+    sort(processes.begin(), processes.end(), compArrival);
 
-    while (completed != n) {
-        minRem = 1e9; found = false;
-        for (int i = 0; i < n; ++i) {
-            if (processes[i].arrival <= currentTime && processes[i].remaining > 0 && processes[i].remaining < minRem) {
-                minRem = processes[i].remaining;
-                idx = i;
-                found = true;
+    vector<queue<int>> q(3);
+    int quantum[3] = {4, 8, 12};
+
+    int n = processes.size();
+    int currentTime = 0;
+    int completed = 0;
+    int nextArrival = 0;
+
+    for (auto &p : processes)
+        p.remaining = p.burst;
+
+    while (completed < n){
+        // Step 1: Add newly arrived processes
+        while (nextArrival < n && processes[nextArrival].arrival <= currentTime){
+            q[0].push(nextArrival);
+            nextArrival++;
+        }
+
+        int lvl = -1;
+
+        // Step 2: pick highest priority non-empty queue
+        for (int i = 0; i < 3; i++){
+            if (!q[i].empty()){
+                lvl = i;
+                break;
             }
         }
 
-        if (!found) {
-            currentTime++;
+        // Step 3: if all empty → jump time
+        if (lvl == -1){
+            currentTime = processes[nextArrival].arrival;
             continue;
         }
 
-        if (processes[idx].start == -1) processes[idx].start = currentTime;
+        int idx = q[lvl].front();
+        q[lvl].pop();
 
-        processes[idx].remaining--;
-        currentTime++;
+        Process &p = processes[idx];
 
-        if (processes[idx].remaining == 0) {
+        if (p.start == -1)
+            p.start = currentTime;
+
+        int execTime = min(quantum[lvl], p.remaining);
+
+        currentTime += execTime;
+        p.remaining -= execTime;
+
+        // Step 4: add newly arrived processes after execution
+        while (nextArrival < n && processes[nextArrival].arrival <= currentTime){
+            q[0].push(nextArrival);
+            nextArrival++;
+        }
+
+        // Step 5: move process
+        if (p.remaining > 0){
+            if (lvl < 2)
+                q[lvl + 1].push(idx);
+            else
+                q[2].push(idx);
+        }
+        else{
+            p.completion = currentTime;
+            p.turnaround = p.completion - p.arrival;
+            p.waiting = p.turnaround - p.burst;
+            p.response = p.start - p.arrival;
             completed++;
-            processes[idx].completion = currentTime;
-            processes[idx].turnaround = processes[idx].completion - processes[idx].arrival;
-            processes[idx].waiting = processes[idx].turnaround - processes[idx].burst;
-            processes[idx].response = processes[idx].start - processes[idx].arrival;
         }
     }
 
-    cout << "\n[SRTF] Average Waiting Time: ";
-    double totalWaiting = 0, totalTurnaround = 0, totalResponse = 0;
-    for (auto p : processes) {
-        totalWaiting += p.waiting;
-        totalTurnaround += p.turnaround;
-        totalResponse += p.response;
-    }
-    cout << fixed << setprecision(2) << totalWaiting / n;
-    cout << ", Turnaround Time: " << totalTurnaround / n;
-    cout << ", Response Time: " << totalResponse / n << endl;
-}
-
-void MLFQ(vector<Process> processes) {
-    vector<queue<int>> queues(3); // 3 level queues
-    int quantum[3] = {4, 8, 12};
-    int currentTime = 0, completed = 0;
-    for (auto &p : processes) p.remaining = p.burst;
-    vector<bool> added(processes.size(), false);
-
-    while (completed < processes.size()) {
-        for (int i = 0; i < processes.size(); ++i) {
-            if (!added[i] && processes[i].arrival <= currentTime) {
-                queues[0].push(i);
-                added[i] = true;
-            }
-        }
-
-        bool found = false;
-        for (int lvl = 0; lvl < 3; ++lvl) {
-            if (queues[lvl].empty()) continue;
-            int i = queues[lvl].front(); queues[lvl].pop();
-            auto &p = processes[i];
-            if (p.start == -1) p.start = currentTime;
-            int useTime = min(quantum[lvl], p.remaining);
-            currentTime += useTime;
-            p.remaining -= useTime;
-
-            for (int j = 0; j < processes.size(); ++j) {
-                if (!added[j] && processes[j].arrival <= currentTime) {
-                    queues[0].push(j);
-                    added[j] = true;
-                }
-            }
-
-            if (p.remaining > 0) {
-                if (lvl < 2) queues[lvl+1].push(i);
-                else queues[2].push(i);
-            } else {
-                p.completion = currentTime;
-                p.turnaround = p.completion - p.arrival;
-                p.waiting = p.turnaround - p.burst;
-                p.response = p.start - p.arrival;
-                completed++;
-            }
-            found = true;
-            break;
-        }
-
-        if (!found) currentTime++;
-    }
-
-    cout << "\n[MLFQ] Average Waiting Time: ";
-    double totalWaiting = 0, totalTurnaround = 0, totalResponse = 0;
-    for (auto p : processes) {
-        totalWaiting += p.waiting;
-        totalTurnaround += p.turnaround;
-        totalResponse += p.response;
-    }
-    cout << fixed << setprecision(2) << totalWaiting / processes.size();
-    cout << ", Turnaround Time: " << totalTurnaround / processes.size();
-    cout << ", Response Time: " << totalResponse / processes.size() << endl;
+    printStatistics(processes, "MLFQ");
 }
 
 int main() {
